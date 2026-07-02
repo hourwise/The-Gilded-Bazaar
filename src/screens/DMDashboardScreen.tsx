@@ -75,32 +75,53 @@ const DMDashboardScreen = ({ navigation }: any) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
 
-    const { data: campaignData } = await supabase
-      .from('campaigns')
-      .select('id, name, join_code')
-      .eq('dm_id', user.id)
+    // Get campaigns where user is owner_dm or co_dm
+    const { data: memberData } = await supabase
+      .from('campaign_members')
+      .select('campaign_id, role, campaigns(*)')
+      .eq('profile_id', user.id)
+      .in('role', ['owner_dm', 'co_dm'])
+      .limit(1)
       .maybeSingle();
 
-    if (campaignData) {
-      setCampaign(campaignData);
+    if (memberData?.campaigns) {
+      const campaign = memberData.campaigns as any;
+      setCampaign({
+        id: campaign.id,
+        name: campaign.name,
+        join_code: campaign.join_code,
+      });
 
-      const { data: memberData } = await supabase
+      // Get members with their characters
+      const { data: membersWithChars } = await supabase
         .from('campaign_members')
-        .select('profiles(id, display_name, race, gold, silver, copper)')
-        .eq('campaign_id', campaignData.id);
+        .select(`
+          id,
+          role,
+          profiles(id, display_name),
+          player_characters(id, character_name, ancestry, gold, silver, copper)
+        `)
+        .eq('campaign_id', campaign.id);
 
-      if (memberData) {
+      if (membersWithChars) {
         setPlayers(
-          memberData
-            .map((m: any) => m.profiles)
-            .filter(Boolean) as Player[]
+          membersWithChars
+            .filter((m: any) => m.player_characters)
+            .map((m: any) => ({
+              id: m.player_characters.id,
+              display_name: m.profiles?.display_name ?? 'Unknown Hero',
+              race: m.player_characters.ancestry,
+              gold: m.player_characters.gold ?? 0,
+              silver: m.player_characters.silver ?? 0,
+              copper: m.player_characters.copper ?? 0,
+            }))
         );
       }
 
       const { data: shopData } = await supabase
         .from('shops')
         .select('id, name, description, is_active, shopkeeper_name, shopkeeper_race')
-        .eq('campaign_id', campaignData.id)
+        .eq('campaign_id', campaign.id)
         .order('created_at');
 
       if (shopData) setShops(shopData);
@@ -118,30 +139,17 @@ const DMDashboardScreen = ({ navigation }: any) => {
     if (!campaignName.trim()) return;
     setCreatingCampaign(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setCreatingCampaign(false); return; }
+    try {
+      const { data, error } = await supabase.rpc('create_campaign', {
+        campaign_name: campaignName.trim(),
+      });
 
-    // Generate a unique join code
-    let code = generateCode();
-    for (let i = 0; i < 5; i++) {
-      const { data: existing } = await supabase
-        .from('campaigns')
-        .select('id')
-        .eq('join_code', code)
-        .maybeSingle();
-      if (!existing) break;
-      code = generateCode();
-    }
+      if (error) throw error;
 
-    const { error } = await supabase
-      .from('campaigns')
-      .insert({ name: campaignName.trim(), join_code: code, dm_id: user.id });
-
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
       setCampaignName('');
       await loadData();
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
     }
     setCreatingCampaign(false);
   };
@@ -340,6 +348,14 @@ const DMDashboardScreen = ({ navigation }: any) => {
             style={styles.addShopButton}
           >
             Open a New Shop
+          </Button>
+          <Button
+            mode="outlined"
+            icon="check-circle"
+            onPress={() => navigation.navigate('PurchaseApprovals', { campaignId: campaign!.id })}
+            style={styles.addShopButton}
+          >
+            Review Purchase Requests
           </Button>
         </>
       )}

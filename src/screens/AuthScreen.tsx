@@ -1,45 +1,45 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text, useTheme } from 'react-native-paper';
-import { supabase } from '../lib/supabaseClient';
+import { authService } from '../services/authService';
 
 const AuthScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const theme = useTheme();
 
   async function signInWithEmail() {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    });
-
-    if (error) Alert.alert('Error', error.message);
+    setErrorMsg(null);
+    const { error } = await authService.signIn(email, password);
+    if (error) {
+      setErrorMsg(error.message);
+    }
     setLoading(false);
   }
 
   async function signUpWithEmail() {
     setLoading(true);
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-    });
-
-    if (error) Alert.alert('Error', error.message);
-    if (!session) Alert.alert('Check your inbox for email verification!');
+    setErrorMsg(null);
+    const { data, error } = await authService.signUp(email, password);
+    if (error) {
+      setErrorMsg(error.message);
+    } else if (!data.session) {
+      setErrorMsg('Check your inbox for email verification!');
+    }
     setLoading(false);
   }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Text variant="displaySmall" style={[styles.title, { color: theme.colors.gold }]}>
-        D&D Economy
+      <Text variant="displaySmall" style={[styles.title, { color: '#FFD700' }]}>
+        The Gilded Bazaar
       </Text>
+      {errorMsg && (
+        <Text style={styles.errorText}>{errorMsg}</Text>
+      )}
       <TextInput
         label="Email"
         onChangeText={(text) => setEmail(text)}
@@ -48,6 +48,8 @@ const AuthScreen = ({ navigation }: any) => {
         autoCapitalize={'none'}
         mode="outlined"
         style={styles.input}
+        keyboardType="email-address"
+        autoComplete="email"
       />
       <TextInput
         label="Password"
@@ -58,6 +60,7 @@ const AuthScreen = ({ navigation }: any) => {
         autoCapitalize={'none'}
         mode="outlined"
         style={styles.input}
+        autoComplete="password"
       />
       <View style={styles.buttonContainer}>
         <Button
@@ -100,6 +103,11 @@ const styles = StyleSheet.create({
   },
   button: {
     marginBottom: 10,
+  },
+  errorText: {
+    color: '#ff8a80',
+    textAlign: 'center',
+    marginBottom: 12,
   },
 });
 

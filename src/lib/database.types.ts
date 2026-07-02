@@ -4,237 +4,410 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[]
+  | Json[];
 
 export interface Database {
   public: {
     Tables: {
-      active_downtime: {
-        Row: {
-          id: string
-          player_id: string | null
-          campaign_id: string | null
-          task_name: string
-          start_time: string | null
-          end_time: string
-          is_completed: boolean | null
-        }
-        Insert: {
-          id?: string
-          player_id?: string | null
-          campaign_id?: string | null
-          task_name: string
-          start_time?: string | null
-          end_time: string
-          is_completed?: boolean | null
-        }
-        Update: {
-          id?: string
-          player_id?: string | null
-          campaign_id?: string | null
-          task_name?: string
-          start_time?: string | null
-          end_time?: string
-          is_completed?: boolean | null
-        }
-      }
-      campaign_members: {
-        Row: {
-          id: string
-          campaign_id: string | null
-          player_id: string | null
-          joined_at: string | null
-        }
-        Insert: {
-          id?: string
-          campaign_id?: string | null
-          player_id?: string | null
-          joined_at?: string | null
-        }
-        Update: {
-          id?: string
-          campaign_id?: string | null
-          player_id?: string | null
-          joined_at?: string | null
-        }
-      }
-      campaigns: {
-        Row: {
-          id: string
-          name: string
-          join_code: string
-          dm_id: string
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          name: string
-          join_code: string
-          dm_id: string
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          name?: string
-          join_code?: string
-          dm_id?: string
-          created_at?: string | null
-        }
-      }
-      credit_transactions: {
-        Row: {
-          id: string
-          profile_id: string | null
-          amount: number
-          transaction_type: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          profile_id?: string | null
-          amount: number
-          transaction_type?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          profile_id?: string | null
-          amount?: number
-          transaction_type?: string | null
-          created_at?: string | null
-        }
-      }
-      items_library: {
-        Row: {
-          id: string
-          name: string
-          description: string | null
-          base_price: number | null
-          rarity: string | null
-          category: string | null
-          is_homebrew: boolean | null
-          created_by: string | null
-        }
-        Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          base_price?: number | null
-          rarity?: string | null
-          category?: string | null
-          is_homebrew?: boolean | null
-          created_by?: string | null
-        }
-        Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          base_price?: number | null
-          rarity?: string | null
-          category?: string | null
-          is_homebrew?: boolean | null
-          created_by?: string | null
-        }
-      }
       profiles: {
         Row: {
-          id: string
-          display_name: string | null
-          avatar_url: string | null
-          credit_balance: number | null
-          is_dm: boolean | null
-          updated_at: string | null
-          race: string | null
-          charisma_modifier: number | null
-          persuasion_proficiency: number | null
-          gold: number | null
-          silver: number | null
-          copper: number | null
-        }
+          id: string;
+          display_name: string | null;
+          avatar_url: string | null;
+          credit_balance: number | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
         Insert: {
-          id: string
-          display_name?: string | null
-          avatar_url?: string | null
-          credit_balance?: number | null
-          is_dm?: boolean | null
-          updated_at?: string | null
-          race?: string | null
-          charisma_modifier?: number | null
-          persuasion_proficiency?: number | null
-          gold?: number | null
-          silver?: number | null
-          copper?: number | null
-        }
+          id: string;
+          display_name?: string | null;
+          avatar_url?: string | null;
+          credit_balance?: number | null;
+        };
         Update: {
-          id?: string
-          display_name?: string | null
-          avatar_url?: string | null
-          credit_balance?: number | null
-          is_dm?: boolean | null
-          updated_at?: string | null
-          race?: string | null
-          charisma_modifier?: number | null
-          persuasion_proficiency?: number | null
-          gold?: number | null
-          silver?: number | null
-          copper?: number | null
-        }
-      }
-      shop_inventory: {
+          id?: string;
+          display_name?: string | null;
+          avatar_url?: string | null;
+          credit_balance?: number | null;
+        };
+      };
+      player_characters: {
         Row: {
-          id: string
-          shop_id: string | null
-          item_id: string | null
-          current_price: number
-          quantity: number | null
-          updated_at: string | null
-        }
+          id: string;
+          profile_id: string;
+          campaign_id: string | null;
+          character_name: string;
+          ancestry: string | null;
+          class_name: string | null;
+          level: number;
+          charisma_modifier: number;
+          persuasion_proficiency: number;
+          gold: number;
+          silver: number;
+          copper: number;
+          created_at: string | null;
+          updated_at: string | null;
+        };
         Insert: {
-          id?: string
-          shop_id?: string | null
-          item_id?: string | null
-          current_price: number
-          quantity?: number | null
-          updated_at?: string | null
-        }
+          profile_id: string;
+          character_name: string;
+          campaign_id?: string | null;
+          ancestry?: string | null;
+          class_name?: string | null;
+          level?: number;
+          charisma_modifier?: number;
+          persuasion_proficiency?: number;
+          gold?: number;
+          silver?: number;
+          copper?: number;
+        };
         Update: {
-          id?: string
-          shop_id?: string | null
-          item_id?: string | null
-          current_price?: number
-          quantity?: number | null
-          updated_at?: string | null
-        }
-      }
+          campaign_id?: string | null;
+          character_name?: string;
+          ancestry?: string | null;
+          class_name?: string | null;
+          level?: number;
+          charisma_modifier?: number;
+          persuasion_proficiency?: number;
+          gold?: number;
+          silver?: number;
+          copper?: number;
+        };
+      };
+      campaigns: {
+        Row: {
+          id: string;
+          name: string;
+          join_code: string;
+          created_by: string;
+          instant_purchases_enabled: boolean;
+          dm_approval_required: boolean;
+          ai_enabled: boolean;
+          created_at: string | null;
+        };
+        Insert: {
+          name: string;
+          join_code: string;
+          created_by: string;
+          instant_purchases_enabled?: boolean;
+          dm_approval_required?: boolean;
+          ai_enabled?: boolean;
+        };
+        Update: {
+          name?: string;
+          join_code?: string;
+          created_by?: string;
+          instant_purchases_enabled?: boolean;
+          dm_approval_required?: boolean;
+          ai_enabled?: boolean;
+        };
+      };
+      campaign_members: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          profile_id: string;
+          character_id: string | null;
+          role: 'owner_dm' | 'co_dm' | 'player' | 'spectator';
+          joined_at: string | null;
+        };
+        Insert: {
+          campaign_id: string;
+          profile_id: string;
+          character_id?: string | null;
+          role?: 'owner_dm' | 'co_dm' | 'player' | 'spectator';
+        };
+        Update: {
+          character_id?: string | null;
+          role?: 'owner_dm' | 'co_dm' | 'player' | 'spectator';
+        };
+      };
+      settlements: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          name: string;
+          description: string | null;
+          prosperity: number;
+          danger: number;
+          magic_density: number;
+          current_event: string | null;
+          status: string;
+          created_at: string | null;
+        };
+        Insert: {
+          campaign_id: string;
+          name: string;
+          description?: string | null;
+          prosperity?: number;
+          danger?: number;
+          magic_density?: number;
+          current_event?: string | null;
+          status?: string;
+        };
+        Update: {
+          name?: string;
+          description?: string | null;
+          prosperity?: number;
+          danger?: number;
+          magic_density?: number;
+          current_event?: string | null;
+          status?: string;
+        };
+      };
       shops: {
         Row: {
-          id: string
-          campaign_id: string | null
-          name: string
-          description: string | null
-          location_name: string | null
-          is_active: boolean | null
-          created_at: string | null
-        }
+          id: string;
+          campaign_id: string;
+          settlement_id: string | null;
+          name: string;
+          description: string | null;
+          shop_type: string | null;
+          shopkeeper_name: string | null;
+          shopkeeper_race: string | null;
+          shopkeeper_personality: string | null;
+          is_active: boolean;
+          created_at: string | null;
+        };
         Insert: {
-          id?: string
-          campaign_id?: string | null
-          name: string
-          description?: string | null
-          location_name?: string | null
-          is_active?: boolean | null
-          created_at?: string | null
-        }
+          campaign_id: string;
+          name: string;
+          settlement_id?: string | null;
+          description?: string | null;
+          shop_type?: string | null;
+          shopkeeper_name?: string | null;
+          shopkeeper_race?: string | null;
+          shopkeeper_personality?: string | null;
+          is_active?: boolean;
+        };
         Update: {
-          id?: string
-          campaign_id?: string | null
-          name?: string
-          description?: string | null
-          location_name?: string | null
-          is_active?: boolean | null
-          created_at?: string | null
-        }
-      }
-    }
-  }
+          name?: string;
+          description?: string | null;
+          settlement_id?: string | null;
+          shop_type?: string | null;
+          shopkeeper_name?: string | null;
+          shopkeeper_race?: string | null;
+          shopkeeper_personality?: string | null;
+          is_active?: boolean;
+        };
+      };
+      items_library: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          base_price_copper: number;
+          rarity: string | null;
+          category: string | null;
+          rules_source: string;
+          is_homebrew: boolean;
+          created_by: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          name: string;
+          description?: string | null;
+          base_price_copper?: number;
+          rarity?: string | null;
+          category?: string | null;
+          rules_source?: string;
+          is_homebrew?: boolean;
+          created_by?: string | null;
+        };
+        Update: {
+          name?: string;
+          description?: string | null;
+          base_price_copper?: number;
+          rarity?: string | null;
+          category?: string | null;
+        };
+      };
+      shop_inventory: {
+        Row: {
+          id: string;
+          shop_id: string;
+          item_id: string;
+          current_price_copper: number;
+          quantity: number;
+          is_visible: boolean;
+          updated_at: string | null;
+        };
+        Insert: {
+          shop_id: string;
+          item_id: string;
+          current_price_copper: number;
+          quantity?: number;
+          is_visible?: boolean;
+        };
+        Update: {
+          current_price_copper?: number;
+          quantity?: number;
+          is_visible?: boolean;
+        };
+      };
+      backpacks: {
+        Row: {
+          id: string;
+          character_id: string;
+          item_id: string;
+          quantity: number;
+          source: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          character_id: string;
+          item_id: string;
+          quantity?: number;
+          source?: string | null;
+        };
+        Update: {
+          quantity?: number;
+          source?: string | null;
+        };
+      };
+      purchase_requests: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          character_id: string;
+          shop_inventory_id: string;
+          quantity: number;
+          price_copper: number;
+          status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+          requested_by: string;
+          resolved_by: string | null;
+          rejection_reason: string | null;
+          created_at: string | null;
+          resolved_at: string | null;
+        };
+        Insert: {
+          campaign_id: string;
+          character_id: string;
+          shop_inventory_id: string;
+          quantity?: number;
+          price_copper: number;
+          status?: 'pending' | 'approved' | 'rejected' | 'cancelled';
+          requested_by: string;
+        };
+        Update: {
+          status?: 'pending' | 'approved' | 'rejected' | 'cancelled';
+          resolved_by?: string | null;
+          rejection_reason?: string | null;
+          resolved_at?: string | null;
+        };
+      };
+      economy_transactions: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          character_id: string | null;
+          transaction_type: string;
+          amount_copper: number;
+          description: string | null;
+          source_table: string | null;
+          source_id: string | null;
+          created_by: string;
+          created_at: string | null;
+        };
+        Insert: {
+          campaign_id: string;
+          character_id?: string | null;
+          transaction_type: string;
+          amount_copper: number;
+          description?: string | null;
+          source_table?: string | null;
+          source_id?: string | null;
+          created_by: string;
+        };
+        Update: {};
+      };
+      campaign_feed: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          visibility: 'party' | 'dm_only' | 'private';
+          recipient_profile_id: string | null;
+          entry_type: string;
+          title: string;
+          body: string | null;
+          metadata: Json;
+          created_by: string;
+          created_at: string | null;
+        };
+        Insert: {
+          campaign_id: string;
+          visibility: 'party' | 'dm_only' | 'private';
+          recipient_profile_id?: string | null;
+          entry_type: string;
+          title: string;
+          body?: string | null;
+          metadata?: Json;
+          created_by: string;
+        };
+        Update: {};
+      };
+      downtime_tasks: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          character_id: string;
+          task_name: string;
+          task_type: string | null;
+          description: string | null;
+          start_time: string | null;
+          end_time: string | null;
+          progress_percent: number;
+          status: 'planned' | 'active' | 'completed' | 'failed' | 'cancelled';
+          result_summary: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          campaign_id: string;
+          character_id: string;
+          task_name: string;
+          task_type?: string | null;
+          description?: string | null;
+          start_time?: string | null;
+          end_time?: string | null;
+          progress_percent?: number;
+          status?: 'planned' | 'active' | 'completed' | 'failed' | 'cancelled';
+        };
+        Update: {
+          task_name?: string;
+          description?: string | null;
+          start_time?: string | null;
+          end_time?: string | null;
+          progress_percent?: number;
+          status?: 'planned' | 'active' | 'completed' | 'failed' | 'cancelled';
+          result_summary?: string | null;
+        };
+      };
+      ai_generation_jobs: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          requested_by: string;
+          job_type: string;
+          prompt_payload: Json | null;
+          result_payload: Json | null;
+          status: 'queued' | 'running' | 'complete' | 'failed';
+          credits_charged: number;
+          created_at: string | null;
+          completed_at: string | null;
+        };
+        Insert: {
+          campaign_id: string;
+          requested_by: string;
+          job_type: string;
+          prompt_payload?: Json | null;
+        };
+        Update: {
+          status?: 'queued' | 'running' | 'complete' | 'failed';
+          result_payload?: Json | null;
+          credits_charged?: number;
+          completed_at?: string | null;
+        };
+      };
+    };
+  };
 }

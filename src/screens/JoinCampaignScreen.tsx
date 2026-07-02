@@ -1,56 +1,50 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { TextInput, Button, Text, useTheme } from 'react-native-paper';
+import { View, StyleSheet } from 'react-native';
+import { Text, TextInput, Button, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabaseClient';
+import { campaignService } from '../services/campaignService';
 
-const JoinCampaignScreen = ({ navigation }: any) => {
-  const [joinCode, setJoinCode] = useState('');
+const JoinCampaignScreen = ({ navigation, route }: any) => {
+  const [joinCode, setJoinCode] = useState(route.params?.code || '');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const theme = useTheme();
 
   const handleJoin = async () => {
     if (joinCode.length !== 6) {
-      Alert.alert("Invalid Code", "Please enter a 6-digit campaign code.");
+      setErrorMsg('Please enter a 6-digit campaign code.');
       return;
     }
 
     setLoading(true);
+    setErrorMsg(null);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
-
-      // 1. Find the campaign by code
-      const { data: campaign, error: campaignError } = await supabase
-        .from('campaigns')
-        .select('id, name')
-        .eq('join_code', joinCode.toUpperCase())
-        .single();
-
-      if (campaignError || !campaign) {
-        throw new Error("Campaign not found. Double check the code!");
+      if (!user) {
+        setErrorMsg('You must be logged in to join a campaign.');
+        setLoading(false);
+        return;
       }
 
-      // 2. Add player to campaign_members
-      const { error: joinError } = await supabase
-        .from('campaign_members')
-        .insert({
-          campaign_id: campaign.id,
-          player_id: user.id
-        });
+      // Get user's first character to link to campaign
+      const { data: characters } = await supabase
+        .from('player_characters')
+        .select('id')
+        .eq('profile_id', user.id)
+        .limit(1);
 
-      if (joinError) {
-        if (joinError.code === '23505') {
-          throw new Error("You are already a member of this campaign!");
-        }
-        throw joinError;
+      const characterId = characters?.[0]?.id;
+
+      const { data, error } = await campaignService.joinCampaign(joinCode.toUpperCase(), characterId);
+
+      if (error) {
+        setErrorMsg(error.message || 'Failed to join campaign.');
+      } else {
+        navigation.replace('Shop');
       }
-
-      Alert.alert("Success!", `You have joined ${campaign.name}.`);
-      navigation.navigate('Shop'); // Go to the shop now that we have a campaign
-
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      setErrorMsg(e.message);
     } finally {
       setLoading(false);
     }
@@ -58,12 +52,16 @@ const JoinCampaignScreen = ({ navigation }: any) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.gold }]}>
+      <Text variant="headlineMedium" style={[styles.title, { color: '#FFD700' }]}>
         Join a Campaign
       </Text>
       <Text style={styles.subtitle}>
         Enter the 6-digit code provided by your Dungeon Master to start shopping.
       </Text>
+
+      {errorMsg && (
+        <Text style={styles.errorText}>{errorMsg}</Text>
+      )}
 
       <TextInput
         label="Campaign Code"
@@ -89,7 +87,7 @@ const JoinCampaignScreen = ({ navigation }: any) => {
       <Button
         mode="text"
         onPress={() => navigation.goBack()}
-        textColor={theme.colors.gold}
+        textColor="#FFD700"
       >
         Cancel
       </Button>
@@ -122,6 +120,11 @@ const styles = StyleSheet.create({
   button: {
     paddingVertical: 8,
     marginBottom: 10,
+  },
+  errorText: {
+    color: '#ff8a80',
+    textAlign: 'center',
+    marginBottom: 12,
   },
 });
 

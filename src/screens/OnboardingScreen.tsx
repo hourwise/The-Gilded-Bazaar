@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import {
   Button,
   TextInput,
   Text,
   Menu,
-  Switch,
   useTheme,
 } from 'react-native-paper';
 import { supabase } from '../lib/supabaseClient';
@@ -22,7 +21,7 @@ const dndRaces = [
   'Dragonborn',
 ];
 
-const OnboardingScreen = ({ onComplete }: { onComplete?: (isDm: boolean) => void }) => {
+const OnboardingScreen = ({ onComplete }: { onComplete?: () => void }) => {
   const [displayName, setDisplayName] = useState('');
   const [race, setRace] = useState<string | null>(null);
   const [charismaModifier, setCharismaModifier] = useState('');
@@ -30,7 +29,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete?: (isDm: boolean) => void
   const [gold, setGold] = useState('0');
   const [silver, setSilver] = useState('0');
   const [copper, setCopper] = useState('0');
-  const [isDm, setIsDm] = useState(false);
+  const [characterName, setCharacterName] = useState('');
   const [loading, setLoading] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -55,31 +54,39 @@ const OnboardingScreen = ({ onComplete }: { onComplete?: (isDm: boolean) => void
       return;
     }
 
-    // Prepare data based on the schema
-    const profileData = {
-      id: user.id,
-      display_name: displayName,
-      race: race,
-      charisma_modifier: parseInt(charismaModifier, 10) || 0,
-      persuasion_proficiency: parseInt(persuasionProficiency, 10) || 0,
-      gold: parseInt(gold, 10) || 0,
-      silver: parseInt(silver, 10) || 0,
-      copper: parseInt(copper, 10) || 0,
-      is_dm: isDm,
-      updated_at: new Date().toISOString(),
-    };
+    try {
+      // Create profile (no is_dm here - roles are per campaign)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          display_name: displayName,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
 
-    // Use .upsert() - it updates if it exists, creates if not.
-    const { error } = await supabase
-      .from('profiles')
-      .upsert(profileData, { onConflict: 'id' });
+      if (profileError) throw profileError;
 
-    if (error) {
-      console.error('Error saving profile:', error.message);
-      alert('Error saving profile: ' + error.message);
-    } else {
-      console.log('Profile saved successfully!');
-      onComplete?.(isDm);
+      // Create first character
+      const { error: charError } = await supabase
+        .from('player_characters')
+        .insert({
+          profile_id: user.id,
+          character_name: characterName || displayName,
+          ancestry: race,
+          charisma_modifier: parseInt(charismaModifier, 10) || 0,
+          persuasion_proficiency: parseInt(persuasionProficiency, 10) || 0,
+          gold: parseInt(gold, 10) || 0,
+          silver: parseInt(silver, 10) || 0,
+          copper: parseInt(copper, 10) || 0,
+        });
+
+      if (charError) throw charError;
+
+      console.log('Profile and character created successfully!');
+      onComplete?.();
+    } catch (e: any) {
+      console.error('Error saving profile:', e.message);
+      Alert.alert('Error', 'Error saving profile: ' + e.message);
     }
 
     setLoading(false);
@@ -87,14 +94,22 @@ const OnboardingScreen = ({ onComplete }: { onComplete?: (isDm: boolean) => void
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Text variant="headlineLarge" style={[styles.title, { color: theme.colors.gold }]}>
+      <Text variant="headlineLarge" style={[styles.title, { color: '#FFD700' }]}>
         Character Details
       </Text>
 
       <TextInput
-        label="Character Name"
+        label="Display Name"
         value={displayName}
         onChangeText={setDisplayName}
+        mode="outlined"
+        style={styles.input}
+      />
+
+      <TextInput
+        label="Character Name"
+        value={characterName}
+        onChangeText={setCharacterName}
         mode="outlined"
         style={styles.input}
       />
@@ -136,7 +151,7 @@ const OnboardingScreen = ({ onComplete }: { onComplete?: (isDm: boolean) => void
         style={styles.input}
       />
 
-      <Text variant="titleMedium" style={{ color: theme.colors.gold, marginBottom: 10 }}>Starting Wealth</Text>
+      <Text variant="titleMedium" style={{ color: '#FFD700', marginBottom: 10 }}>Starting Wealth</Text>
       <View style={styles.wealthContainer}>
         <TextInput
           label="Gold"
@@ -164,26 +179,13 @@ const OnboardingScreen = ({ onComplete }: { onComplete?: (isDm: boolean) => void
         />
       </View>
 
-      {/* DM toggle */}
-      <View style={styles.dmToggleRow}>
-        <View style={styles.dmToggleText}>
-          <Text variant="titleSmall" style={{ color: theme.colors.gold }}>
-            I am the Dungeon Master
-          </Text>
-          <Text style={styles.dmToggleHint}>
-            Enables the Merchant Prince console for managing shops and campaigns.
-          </Text>
-        </View>
-        <Switch value={isDm} onValueChange={setIsDm} color={theme.colors.gold} />
-      </View>
-
       <Button
         mode="contained"
         onPress={handleSubmit}
-        disabled={!displayName || loading}
+        disabled={!displayName || !characterName || loading}
         loading={loading}
         style={styles.button}>
-        {isDm ? 'Open the Bazaar' : 'Enter The Realm'}
+        Enter The Realm
       </Button>
     </ScrollView>
   );
@@ -208,26 +210,6 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 8,
-  },
-  dmToggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(46,8,84,0.4)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.3)',
-    padding: 12,
-    marginBottom: 16,
-  },
-  dmToggleText: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  dmToggleHint: {
-    color: '#aaa',
-    fontSize: 12,
-    marginTop: 2,
   },
   buttonContent: {
     height: 50,

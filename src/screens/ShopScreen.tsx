@@ -12,13 +12,14 @@ import { supabase } from '../lib/supabaseClient';
 import Wallet from '../components/Wallet';
 import { useCharacterStats } from '../hooks/useCharacterStats';
 import { getShopkeeperImage } from '../lib/shopkeeperImages';
+import { purchaseService } from '../services/purchaseService';
 
 interface ShopItem {
   id: string; // shop_inventory id
   item_id: string;
   name: string;
   description: string;
-  current_price: number;
+  current_price_copper: number;
   quantity: number;
 }
 
@@ -36,7 +37,7 @@ const ShopScreen = ({ navigation }: any) => {
   const [shopData, setShopData] = useState<ShopData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inCampaign, setInCampaign] = useState(true);
+  const [inCampaign, setInCampaign] = useState(false);
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
   const fetchShopAndItems = useCallback(async () => {
@@ -47,28 +48,31 @@ const ShopScreen = ({ navigation }: any) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user session found");
 
-      // 1. Get the player's campaign
-      const { data: memberData, error: memberError } = await supabase
-        .from('campaign_members')
-        .select('campaign_id')
-        .eq('player_id', user.id)
-        .maybeSingle();
+      // 1. Get the player's character and campaign
+      const { data: charData, error: charError } = await supabase
+        .from('player_characters')
+        .select('id, campaign_id')
+        .eq('profile_id', user.id)
+        .eq('campaign_id', user.id)
+        .order('created_at')
+        .limit(1);
 
-      if (memberError) throw memberError;
+      if (charError) throw charError;
 
-      if (!memberData) {
+      if (!charData || charData.length === 0) {
         setInCampaign(false);
         setLoading(false);
         return;
       }
 
+      const character = charData[0];
       setInCampaign(true);
 
       // 2. Get the active shop for this campaign
       const { data: shop, error: shopError } = await supabase
         .from('shops')
         .select('id, name, description, shopkeeper_name, shopkeeper_race')
-        .eq('campaign_id', memberData.campaign_id)
+        .eq('campaign_id', character.campaign_id)
         .eq('is_active', true)
         .limit(1)
         .maybeSingle();
@@ -80,12 +84,12 @@ const ShopScreen = ({ navigation }: any) => {
         return;
       }
 
-      // 3. Get items in this shop (Join shop_inventory with items_library)
+      // 3. Get items in this shop
       const { data: inventory, error: invError } = await supabase
         .from('shop_inventory')
         .select(`
           id,
-          current_price,
+          current_price_copper,
           quantity,
           item_id,
           items_library (
@@ -93,7 +97,8 @@ const ShopScreen = ({ navigation }: any) => {
             description
           )
         `)
-        .eq('shop_id', shop.id);
+        .eq('shop_id', shop.id)
+        .eq('is_visible', true);
 
       if (invError) throw invError;
 
@@ -102,7 +107,7 @@ const ShopScreen = ({ navigation }: any) => {
         item_id: row.item_id,
         name: row.items_library.name,
         description: row.items_library.description,
-        current_price: row.current_price,
+        current_price_copper: row.current_price_copper,
         quantity: row.quantity,
       }));
 
@@ -124,7 +129,6 @@ const ShopScreen = ({ navigation }: any) => {
   }, []);
 
   useEffect(() => {
-    // Re-fetch when the screen comes into focus
     const unsubscribe = navigation.addListener('focus', () => {
       fetchShopAndItems();
     });
@@ -132,39 +136,26 @@ const ShopScreen = ({ navigation }: any) => {
   }, [navigation, fetchShopAndItems]);
 
   const handleBuy = async (item: ShopItem) => {
-    if (gold < item.current_price) {
+    const totalCopper = gold * 10000 + silver * 100 + copper;
+    if (totalCopper < item.current_price_copper) {
       Alert.alert("Insufficient Funds", "You don't have enough gold for this item!");
       return;
     }
 
     try {
       setBuyingId(item.id);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
 
-      // 1. Deduct gold from profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ gold: gold - item.current_price })
-        .eq('id', user.id);
+      // Use secure RPC function - no client-side gold deduction!
+      const { data, error } = await purchaseService.requestPurchase(item.id, 1);
 
-      if (profileError) throw profileError;
+      if (error) throw error;
 
-      // 2. Reduce quantity in shop inventory if not infinite (-1)
-      if (item.quantity > 0) {
-        const { error: invError } = await supabase
-          .from('shop_inventory')
-          .update({ quantity: item.quantity - 1 })
-          .eq('id', item.id);
+      Alert.alert(
+        data?.status === 'completed' ? "Success!" : "Request Sent",
+        data?.message || "Your purchase has been processed."
+      );
 
-        if (invError) throw invError;
-      }
-
-      Alert.alert("Success!", `You purchased ${item.name} for ${item.current_price} GP.`);
-
-      // Refresh data
       fetchShopAndItems();
-
     } catch (e: any) {
       Alert.alert("Error", e.message || "Purchase failed.");
     } finally {
@@ -178,13 +169,13 @@ const ShopScreen = ({ navigation }: any) => {
         <Title>{item.name}</Title>
         <Paragraph>{item.description}</Paragraph>
         <View style={styles.cardFooter}>
-          <Text style={styles.itemCost}>{item.current_price} GP</Text>
+      <Text style={styles.itemCost}>{Math.floor(item.current_price_copper / 10000)} GP</Text>
           <Button
             mode="contained"
             compact
             onPress={() => handleBuy(item)}
             loading={buyingId === item.id}
-            disabled={gold < item.current_price || (item.quantity === 0) || !!buyingId}
+            disabled={!!buyingId}
           >
             {item.quantity === 0 ? "Out of Stock" : "Buy"}
           </Button>
