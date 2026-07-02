@@ -73,3 +73,19 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Expo
+.expo
+dist/
+web-build/
+
+# Firebase / Secrets
+google-services.json
+GoogleService-Info.plist
+*.jks
+*.p12
+*.pem
+*.key
+key.properties
+.env*
+*.env*
