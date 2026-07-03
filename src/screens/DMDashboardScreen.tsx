@@ -270,6 +270,15 @@ const DMDashboardScreen = ({ navigation }: any) => {
                   <Text style={styles.spText}>{player.silver ?? 0} SP</Text>
                   <Text style={styles.cpText}>{player.copper ?? 0} CP</Text>
                 </View>
+                <Button
+                  mode="text"
+                  icon="bag-personal-outline"
+                  compact
+                  onPress={() => navigation.navigate('Backpack', { characterId: player.id })}
+                  textColor="#ffd700"
+                >
+                  Pack
+                </Button>
               </Card.Content>
             </Card>
           ))}
@@ -356,6 +365,15 @@ const DMDashboardScreen = ({ navigation }: any) => {
             style={styles.addShopButton}
           >
             Review Purchase Requests
+          </Button>
+          <Button
+            mode="outlined"
+            icon="book-open-page-variant-outline"
+            onPress={() => navigation.navigate('CampaignFeed')}
+            style={styles.addShopButton}
+            textColor="#ffd700"
+          >
+            View Chronicle
           </Button>
         </>
       )}

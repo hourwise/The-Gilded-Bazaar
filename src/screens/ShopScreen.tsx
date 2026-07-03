@@ -8,11 +8,13 @@ import {
   Image,
 } from 'react-native';
 import { Text, Card, Title, Paragraph, Button } from 'react-native-paper';
-import { supabase } from '../lib/supabaseClient';
 import Wallet from '../components/Wallet';
 import { useCharacterStats } from '../hooks/useCharacterStats';
 import { getShopkeeperImage } from '../lib/shopkeeperImages';
+import { authService } from '../services/authService';
+import { shopService } from '../services/shopService';
 import { purchaseService } from '../services/purchaseService';
+import colours from '../theme/colours';
 
 interface ShopItem {
   id: string; // shop_inventory id
@@ -45,37 +47,30 @@ const ShopScreen = ({ navigation }: any) => {
       setLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = await authService.getUser();
       if (!user) throw new Error("No user session found");
 
-      // 1. Get the player's character and campaign
-      const { data: charData, error: charError } = await supabase
-        .from('player_characters')
-        .select('id, campaign_id')
-        .eq('profile_id', user.id)
-        .eq('campaign_id', user.id)
-        .order('created_at')
-        .limit(1);
+      // 1. Get the player's campaign and active shop
+      const { data: campaignShop, error: campaignError } = await shopService.getPlayerCampaignAndShop(user.id);
 
-      if (charError) throw charError;
+      if (campaignError) throw campaignError;
 
-      if (!charData || charData.length === 0) {
+      if (!campaignShop || !campaignShop.inCampaign) {
         setInCampaign(false);
         setLoading(false);
         return;
       }
 
-      const character = charData[0];
       setInCampaign(true);
 
-      // 2. Get the active shop for this campaign
-      const { data: shop, error: shopError } = await supabase
-        .from('shops')
-        .select('id, name, description, shopkeeper_name, shopkeeper_race')
-        .eq('campaign_id', character.campaign_id)
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle();
+      if (!campaignShop.shop) {
+        setError("No active shops in this campaign.");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Get shop with items
+      const { data: shop, error: shopError } = await shopService.getShopWithItems(campaignShop.shop.id);
 
       if (shopError) throw shopError;
       if (!shop) {
@@ -84,41 +79,7 @@ const ShopScreen = ({ navigation }: any) => {
         return;
       }
 
-      // 3. Get items in this shop
-      const { data: inventory, error: invError } = await supabase
-        .from('shop_inventory')
-        .select(`
-          id,
-          current_price_copper,
-          quantity,
-          item_id,
-          items_library (
-            name,
-            description
-          )
-        `)
-        .eq('shop_id', shop.id)
-        .eq('is_visible', true);
-
-      if (invError) throw invError;
-
-      const items: ShopItem[] = (inventory || []).map((row: any) => ({
-        id: row.id,
-        item_id: row.item_id,
-        name: row.items_library.name,
-        description: row.items_library.description,
-        current_price_copper: row.current_price_copper,
-        quantity: row.quantity,
-      }));
-
-      setShopData({
-        id: shop.id,
-        name: shop.name,
-        description: shop.description || '',
-        shopkeeper_name: shop.shopkeeper_name ?? null,
-        shopkeeper_race: shop.shopkeeper_race ?? null,
-        items: items,
-      });
+      setShopData(shop);
 
     } catch (e: any) {
       console.error(e);
@@ -213,6 +174,28 @@ const ShopScreen = ({ navigation }: any) => {
           </View>
         ) : (
           <>
+            {/* Navigation bar: Chronicle + Backpack */}
+            <View style={styles.navBar}>
+              <Button
+                mode="text"
+                icon="book-open-page-variant-outline"
+                onPress={() => navigation.navigate('CampaignFeed')}
+                textColor={colours.brightGold}
+                compact
+              >
+                Chronicle
+              </Button>
+              <Button
+                mode="text"
+                icon="bag-personal-outline"
+                onPress={() => navigation.navigate('Backpack', {})}
+                textColor={colours.brightGold}
+                compact
+              >
+                Backpack
+              </Button>
+            </View>
+
             <View style={styles.shopHeader}>
               <Image
                 source={getShopkeeperImage(shopData?.shopkeeper_race)}
@@ -249,6 +232,12 @@ const ShopScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#1c1c1c' },
   overlay: { flex: 1, padding: 16 },
+  navBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
   shopHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',

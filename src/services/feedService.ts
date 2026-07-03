@@ -1,3 +1,4 @@
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 
 export interface CampaignFeed {
@@ -42,5 +43,34 @@ export const feedService = {
       .select()
       .single();
     return { data, error };
+  },
+
+  /**
+   * Subscribe to realtime feed inserts for a campaign.
+   * @param campaignId - The campaign to subscribe to
+   * @param onInsert - Callback when a new feed entry is inserted
+   * @returns The RealtimeChannel (caller must unsubscribe)
+   */
+  subscribeToCampaignFeed(
+    campaignId: string,
+    onInsert: (entry: CampaignFeed) => void
+  ): RealtimeChannel {
+    const channel = supabase
+      .channel(`feed-${campaignId}-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'campaign_feed',
+          filter: `campaign_id=eq.${campaignId}`,
+        },
+        (payload) => {
+          onInsert(payload.new as CampaignFeed);
+        }
+      )
+      .subscribe();
+
+    return channel;
   },
 };

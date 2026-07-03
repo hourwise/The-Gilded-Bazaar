@@ -24,6 +24,8 @@ export type DMStackParamList = {
   CreateShop: undefined;
   ManageShop: { shopId: string; shopName: string };
   PurchaseApprovals: { campaignId: string };
+  CampaignFeed: undefined;
+  Backpack: { characterId: string };
 };
 
 export type PlayerStackParamList = {
@@ -31,6 +33,7 @@ export type PlayerStackParamList = {
   Shop: { shopId?: string };
   JoinCampaign: undefined;
   Backpack: { characterId: string };
+  CampaignFeed: undefined;
 };
 
 export type AppNavigationProp = NativeStackScreenProps<RootStackParamList>['navigation'];

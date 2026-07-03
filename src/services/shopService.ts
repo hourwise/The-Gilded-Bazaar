@@ -126,4 +126,91 @@ export const shopService = {
       .order('name');
     return { data, error };
   },
+
+  async getPlayerCampaignAndShop(profileId: string) {
+    // Get the player's character
+    const { data: charData, error: charError } = await supabase
+      .from('player_characters')
+      .select('id, campaign_id')
+      .eq('profile_id', profileId)
+      .order('created_at')
+      .limit(1);
+
+    if (charError) return { data: null, error: charError };
+    if (!charData || charData.length === 0) {
+      return { data: { inCampaign: false, shop: null, characterId: null, campaignId: null }, error: null };
+    }
+
+    const character = charData[0];
+
+    // Get the active shop for this campaign
+    const { data: shop, error: shopError } = await supabase
+      .from('shops')
+      .select('id, name, description, shopkeeper_name, shopkeeper_race')
+      .eq('campaign_id', character.campaign_id)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+
+    if (shopError) return { data: null, error: shopError };
+
+    return {
+      data: {
+        inCampaign: true,
+        characterId: character.id,
+        campaignId: character.campaign_id,
+        shop: shop || null,
+      },
+      error: null,
+    };
+  },
+
+  async getShopWithItems(shopId: string) {
+    const { data: shop, error: shopError } = await supabase
+      .from('shops')
+      .select('id, name, description, shopkeeper_name, shopkeeper_race')
+      .eq('id', shopId)
+      .maybeSingle();
+
+    if (shopError) return { data: null, error: shopError };
+    if (!shop) return { data: null, error: new Error('Shop not found') };
+
+    const { data: inventory, error: invError } = await supabase
+      .from('shop_inventory')
+      .select(`
+        id,
+        current_price_copper,
+        quantity,
+        item_id,
+        items_library (
+          name,
+          description
+        )
+      `)
+      .eq('shop_id', shopId)
+      .eq('is_visible', true);
+
+    if (invError) return { data: null, error: invError };
+
+    const items = (inventory || []).map((row: any) => ({
+      id: row.id,
+      item_id: row.item_id,
+      name: row.items_library.name,
+      description: row.items_library.description,
+      current_price_copper: row.current_price_copper,
+      quantity: row.quantity,
+    }));
+
+    return {
+      data: {
+        id: shop.id,
+        name: shop.name,
+        description: shop.description || '',
+        shopkeeper_name: shop.shopkeeper_name ?? null,
+        shopkeeper_race: shop.shopkeeper_race ?? null,
+        items,
+      },
+      error: null,
+    };
+  },
 };

@@ -25,6 +25,8 @@ import PurchaseApprovalScreen from '../screens/PurchaseApprovalScreen';
 // Player screens
 import ShopScreen from '../screens/ShopScreen';
 import JoinCampaignScreen from '../screens/JoinCampaignScreen';
+import CampaignFeedScreen from '../screens/CampaignFeedScreen';
+import BackpackScreen from '../screens/BackpackScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const DMStack = createNativeStackNavigator<DMStackParamList>();
@@ -63,6 +65,17 @@ function DMNavigator() {
         component={ManageShopScreen}
         options={({ route }: any) => ({ title: route.params?.shopName ?? 'Manage Shop' })}
       />
+      <DMStack.Screen
+        name="CampaignFeed"
+        options={{ title: 'Chronicle' }}
+      >
+        {(props) => <CampaignFeedScreen {...props} isDM />}
+      </DMStack.Screen>
+      <DMStack.Screen
+        name="Backpack"
+        component={BackpackScreen}
+        options={{ title: 'Adventurer\'s Pack' }}
+      />
     </DMStack.Navigator>
   );
 }
@@ -90,6 +103,16 @@ function PlayerNavigator() {
         name="JoinCampaign"
         component={JoinCampaignScreen}
         options={{ title: 'Join a Campaign' }}
+      />
+      <PlayerStack.Screen
+        name="CampaignFeed"
+        component={CampaignFeedScreen}
+        options={{ title: 'Chronicle' }}
+      />
+      <PlayerStack.Screen
+        name="Backpack"
+        component={BackpackScreen}
+        options={{ title: 'My Backpack' }}
       />
     </PlayerStack.Navigator>
   );

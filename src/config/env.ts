@@ -8,8 +8,12 @@
  */
 
 export const ENV = {
-  SUPABASE_URL: process.env.SUPABASE_URL || '',
-  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
+  SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '',
+  SUPABASE_ANON_KEY:
+    process.env.EXPO_PUBLIC_SUPABASE_KEY ||
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    '',
   REVENUECAT_ANDROID_API_KEY: process.env.REVENUECAT_ANDROID_API_KEY || '',
   REVENUECAT_IOS_API_KEY: process.env.REVENUECAT_IOS_API_KEY || '',
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
